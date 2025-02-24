@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Sharing Platform</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    form {
+      margin-bottom: 20px;
+    }
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>File Sharing Platform</h1>
+
+    <!-- Upload Form -->
+    <h2>Upload a File</h2>
+    <form id="uploadForm">
+      <input type="text" id="fileName" placeholder="File Name" required>
+      <textarea id="fileContent" placeholder="File Content" required></textarea>
+      <button type="submit">Upload</button>
+    </form>
+
+    <!-- Download Form -->
+    <h2>Download a File</h2>
+    <form id="downloadForm">
+      <input type="text" id="downloadFileName" placeholder="File Name" required>
+      <button type="submit">Download</button>
+    </form>
+
+    <!-- Download Result -->
+    <div id="downloadResult" style="margin-top: 20px;"></div>
+  </div>
+
+  <script>
+    const apiUrl = 'https://jpurk1dloa.execute-api.ap-south-1.amazonaws.com/dev/files';
+
+    // Upload File
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fileName = document.getElementById('fileName').value;
+      const fileContent = document.getElementById('fileContent').value;
+
+      try {
+        const response = await fetch(`${apiUrl}?fileName=${fileName}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain',
+          },
+          body: fileContent,
+        });
+        if (response.ok) {
+          alert('File uploaded successfully!');
+        } else {
+          alert('Failed to upload file.');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('An error occurred while uploading the file.');
+      }
+    });
+
+    // Download File
+    document.getElementById('downloadForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fileName = document.getElementById('downloadFileName').value;
+
+  try {
+    const response = await fetch(`${apiUrl}?fileName=${fileName}`);
+    if (response.ok) {
+      const result = await response.json(); // Parse the JSON response
+
+      // Check if the response is base64-encoded
+      if (result.isBase64Encoded) {
+        // Decode the base64-encoded body
+        const fileContent = atob(result.body);
+
+        // Get the content type and disposition from the headers
+        const contentType = result.headers['Content-Type'];
+        const contentDisposition = result.headers['Content-Disposition'];
+
+        // Extract the filename from the Content-Disposition header (if available)
+        let downloadFileName = fileName;
+        if (contentDisposition && contentDisposition.includes('filename=')) {
+          downloadFileName = contentDisposition.split('filename=')[1].trim();
+        }
+
+        // Handle the file based on its type
+        if (contentType.startsWith('image/')) {
+          // Display the image
+          const img = document.createElement('img');
+          img.src = `data:${contentType};base64,${result.body}`;
+          document.getElementById('downloadResult').innerHTML = '';
+          document.getElementById('downloadResult').appendChild(img);
+        } else {
+          // Trigger a file download for non-image files
+          const blob = new Blob([fileContent], { type: contentType });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = downloadFileName; // Use the filename from the headers or user input
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+      } else {
+        // Handle non-base64 responses (if applicable)
+        document.getElementById('downloadResult').innerText = `File Content:\n${result.body}`;
+      }
+    } else {
+      alert('File not found.');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('An error occurred while downloading the file.');
+  }
+});
+    
+  </script>
+</body>
+</html>
