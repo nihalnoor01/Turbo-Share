@@ -1,4 +1,3 @@
-# Turbo-Share
 # Serverless File Sharing Platform
 
 This is a simple Serverless File Sharing Platform that allows users to upload and download files using a web interface. The platform is built using AWS Lambda, API Gateway, and Amazon S3. Users can upload a file by writing its content and download it by entering the file name.
